@@ -64,24 +64,52 @@ Meteor.publish('players', function(gameID) {
   return Players.find({"gameID": gameID});
 });
 
-Games.find({"state": 'settingUp'}).observeChanges({
+Games.find({"state": 'choosingCrisisSource'}).observeChanges({
   added: function (id, game) {
-    var location = getRandomLocation();
-    var players = Players.find({gameID: id});
-    var gameEndTime = moment().add(game.lengthInMinutes, 'minutes').valueOf();
+    var players = Players.find({"gameID": id});
 
-    var spyIndex = Math.floor(Math.random() * players.count());
-    var firstPlayerIndex = Math.floor(Math.random() * players.count());
+    var chooserIndex = Math.floor(Math.random() * players.count());
 
     players.forEach(function(player, index){
       Players.update(player._id, {$set: {
-        isSpy: index === spyIndex,
-        isFirstPlayer: index === firstPlayerIndex
+        isChoosingCrisis: index === chooserIndex
       }});
     });
 
-    assignRoles(players, location);
+    Games.update(id, {$set: {state: 'choosingCrisis'}});
+  }
+});
 
-    Games.update(id, {$set: {state: 'inProgress', location: location, endTime: gameEndTime, paused: false, pausedTime: null}});
+Games.find({"state": 'findingElon'}).observeChanges({
+  added: function (id, game) {
+    var players = Players.find({gameID: id}).fetch();
+
+    var nonChoosers = players.filter(player => !player.isChoosingCrisis);
+    var elonIndex = Math.floor(Math.random() * nonChoosers.length);
+    var elonId = nonChoosers[elonIndex]._id;
+
+    players.forEach(function(player, index){
+      Players.update(player._id, {$set: {
+        isElon: player._id === elonId,
+        submittedSolution: false
+      }});
+    });
+
+    Games.update(id, {$set: {state: 'solvingCrisis'}});
+  }
+});
+
+Players.find({"submittedSolution": true}).observeChanges({
+    added: function (id, player) {
+    var game = Games.findOne(player.gameID);
+    var players = Players.find({gameID: game._id}).fetch();
+
+    if (!players.every(player => player.submittedSolution)) {
+      return;
+    }
+
+    var gameEndTime = moment().add(game.lengthInMinutes, 'minutes').valueOf();
+
+    Games.update(game._id, {$set: {state: 'inProgress', endTime: gameEndTime, paused: false, pausedTime: null}});
   }
 });

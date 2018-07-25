@@ -14,7 +14,6 @@
 <body></body>
 
 <template name="main">
-  <div class="adspace"></div>
   <div dir="{{ textDirection }}" class="container dir-{{textDirection}} lang-{{ language }}">
     <div class="main-content">
       {{> Template.dynamic template=whichView}}
@@ -28,7 +27,7 @@
 
 <template name="startMenu">
   <div class="main-menu">
-    <h4>{{_ "ui.welcome to spyfall" }}</h4>
+    <h4>{{_ "ui.welcome to the game" }}</h4>
 
     <hr>
 
@@ -109,6 +108,52 @@
   </div>
 </template>
 
+<template name="choosingCrisis">
+  {{#if player.isChoosingCrisis }}
+    <h4>{{_ "ui.what's gone wrong" }}</h4>
+
+    <form id="choose-crisis">
+      <div class="">
+        <input type="text" id="crisis-description" name="crisisDescription" placeholder='{{_ "ui.describe a crisis" }}'>
+
+        {{> flashMessages}}
+
+        <div class="button-container">
+          <input type="submit" value='{{_ "ui.panic" }}'>
+          <button class="btn-cancel">{{_ "ui.cancel" }}</button>
+        </div>
+      </div>
+    </form>
+  {{else}}
+    <h4>{{_ "ui.waiting for a crisis"}}</h4>
+    <div class="button-container">
+      <button class="btn-cancel">{{_ "ui.cancel" }}</button>
+    </div>
+  {{/if}}
+</template>
+
+<template name="solvingCrisis">
+  {{#if player.isElon }}
+  <h4>{{_ "ui.something's wrong elon" }}</h4>
+  {{else}}
+  <h4>{{_ "ui.something's wrong"}}</h4>
+  <div class="current-crisis">
+      {{_ game.crisisDescription }}
+  </div>
+  {{/if}}
+  <form id="solve-crisis">
+    <div class="">
+      <input type="text" id="solution-description" name="solutionDescription" placeholder='{{_ "ui.two word solution" }}'>
+      {{> flashMessages}}
+
+      <div class="button-container">
+        <input type="submit" value='{{_ "ui.solve it" }}'>
+        <button class="btn-cancel">{{_ "ui.cancel" }}</button>
+      </div>
+    </div>
+  </form>
+</template>
+
 <template name="gameView">
   <h4><a class="game-countdown {{#if gameFinished }}finished{{/if}} {{#if game.paused }}paused{{/if}}">{{{ timeRemaining }}}</a></h4>
 
@@ -116,27 +161,13 @@
     <button class="btn-toggle-status">{{_ "ui.show hide" }}</button>
 
     <div class="status-container-content">
-      {{#if player.isSpy }}
-        <div class="player-status player-status-spy">{{_ "ui.you are the spy" }}</div>
+      {{#if player.isElon }}
+        <div class="player-status player-status-elon">{{_ "ui.you are elon" }}</div>
       {{else}}
-        <div class="player-status player-status-not-spy">{{{_ "ui.you are not the spy" }}}</div>
+        <div class="player-status player-status-not-elon">{{{_ "ui.you are not elon" }}}</div>
 
-        <div class="current-location">
-          <div class="current-location-header">
-            {{_ "ui.the location" }}:
-          </div>
-          <div class="current-location-name">
-            {{_ game.location.name }}
-          </div>
-        </div>
-
-        <div class="current-role">
-          <div class="current-role-header">
-            {{_ "ui.your role" }}:
-          </div>
-          <div class="current-role-name">
-            {{_ player.role }}
-          </div>
+        <div class="current-crisis">
+          {{_ game.crisisDescription }}
         </div>
       {{/if}}
     </div>
@@ -148,21 +179,8 @@
       <li>
         <div class="player-name">
           {{ name }}
-          {{#if isFirstPlayer}}
-            <div class="first-player-indicator">{{{_ "ui.first" }}}</div>
-          {{/if}}
+          {{ solutionDescription }}
         </div>
-      </li>
-    {{/each}}
-  </ul>
-
-  <div class="u-cf"></div>
-
-  <h5>{{_ "ui.location reference" }}</h5>
-  <ul class="location-list">
-    {{#each locations }}
-      <li>
-        <div class="location-name">{{_ name }}</div>
       </li>
     {{/each}}
   </ul>
@@ -180,7 +198,7 @@
     {{#if isLoading }}
       <span class="spinner"></span>
     {{else}}
-      {{_ "ui.welcome to spyfall" }}
+      {{_ "ui.welcome to the game" }}
     {{/if}}
   </h4>
 
@@ -203,7 +221,7 @@
     {{#if isLoading }}
       <span class="spinner"></span>
     {{else}}
-      {{_ "ui.welcome to spyfall" }}
+      {{_ "ui.welcome to the game" }}
     {{/if}}
   </h4>
 
@@ -245,6 +263,6 @@
   <div class="footer">
     {{{_ "ui.footer" }}}
     <br>
-    <a href="https://github.com/mpcovcd/spyfall" target="_blank">https://github.com/mpcovcd/spyfall</a>
+    <a href="https://github.com/gbrik/muskmarine" target="_blank">https://github.com/gbrik/muskmarine</a>
   </div>
 </template>

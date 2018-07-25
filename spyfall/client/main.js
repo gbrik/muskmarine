@@ -8,34 +8,34 @@ Handlebars.registerHelper('toCapitalCase', function (str) {
 });
 
 function initUserLanguage() {
-  var language = amplify.store("language");
+  var language = amplify.store('language');
 
   if (language){
-    Session.set("language", language);
+    Session.set('language', language);
   }
 
   setUserLanguage(getUserLanguage());
 }
 
 function getUserLanguage() {
-  var language = Session.get("language");
+  var language = Session.get('language');
 
   if (language){
     return language;
   } else {
-    return "en";
+    return 'en';
   }
 };
 
 function setUserLanguage(language) {
   TAPi18n.setLanguage(language).done(function () {
-    Session.set("language", language);
-    amplify.store("language", language);
+    Session.set('language', language);
+    amplify.store('language', language);
   });
 }
 
 function getLanguageDirection() {
-  var language = getUserLanguage()
+    var language = getUserLanguage();
   var rtlLanguages = ['he', 'ar', 'fa'];
 
   if ($.inArray(language, rtlLanguages) !== -1) {
@@ -48,16 +48,16 @@ function getLanguageDirection() {
 function getLanguageList() {
   var languages = TAPi18n.getLanguages();
   var languageList = _.map(languages, function(value, key) {
-    var selected = "";
+    var selected = '';
 
     if (key == getUserLanguage()){
-      selected = "selected";
+      selected = 'selected';
     }
 
     // Gujarati isn't handled automatically by tap-i18n,
     // so we need to set the language name manually
-    if (value.name == "gu"){
-        value.name = "ગુજરાતી";
+    if (value.name == 'gu'){
+        value.name = 'ગુજરાતી';
     }
 
     return {
@@ -75,7 +75,7 @@ function getLanguageList() {
 }
 
 function getCurrentGame(){
-  var gameID = Session.get("gameID");
+  var gameID = Session.get('gameID');
 
   if (gameID) {
     return Games.findOne(gameID);
@@ -89,12 +89,12 @@ function getAccessLink(){
     return;
   }
 
-  return Meteor.settings.public.url + game.accessCode + "/";
+  return Meteor.settings.public.url + game.accessCode + '/';
 }
 
 
 function getCurrentPlayer(){
-  var playerID = Session.get("playerID");
+  var playerID = Session.get('playerID');
 
   if (playerID) {
     return Players.findOne(playerID);
@@ -102,8 +102,8 @@ function getCurrentPlayer(){
 }
 
 function generateAccessCode(){
-  var code = "";
-  var possible = "abcdefghijklmnopqrstuvwxyz";
+  var code = '';
+  var possible = 'abcdefghijklmnopqrstuvwxyz';
 
     for(var i=0; i < 6; i++){
       code += possible.charAt(Math.floor(Math.random() * possible.length));
@@ -115,7 +115,7 @@ function generateAccessCode(){
 function generateNewGame(){
   var game = {
     accessCode: generateAccessCode(),
-    state: "waitingForPlayers",
+    state: 'waitingForPlayers',
     location: null,
     lengthInMinutes: 8,
     endTime: null,
@@ -133,9 +133,10 @@ function generateNewPlayer(game, name){
   var player = {
     gameID: game._id,
     name: name,
-    role: null,
-    isSpy: false,
-    isFirstPlayer: false
+    solutionDescription: null,
+    submittedSolution: false,
+    isChoosingCrisis: false,
+    isElon: false
   };
 
   var playerID = Players.insert(player);
@@ -150,13 +151,13 @@ function resetUserState(){
     Players.remove(player._id);
   }
 
-  Session.set("gameID", null);
-  Session.set("playerID", null);
+  Session.set('gameID', null);
+  Session.set('playerID', null);
 }
 
 function trackGameState () {
-  var gameID = Session.get("gameID");
-  var playerID = Session.get("playerID");
+  var gameID = Session.get('gameID');
+  var playerID = Session.get('playerID');
 
   if (!gameID || !playerID){
     return;
@@ -166,27 +167,30 @@ function trackGameState () {
   var player = Players.findOne(playerID);
 
   if (!game || !player){
-    Session.set("gameID", null);
-    Session.set("playerID", null);
-    Session.set("currentView", "startMenu");
+    Session.set('gameID', null);
+    Session.set('playerID', null);
+    Session.set('currentView', 'startMenu');
     return;
   }
 
-  if(game.state === "inProgress"){
-    Session.set("currentView", "gameView");
-  } else if (game.state === "waitingForPlayers") {
-    Session.set("currentView", "lobby");
+  if(game.state === 'choosingCrisis'){
+    Session.set('currentView', 'choosingCrisis');
+  } else if(game.state === 'solvingCrisis'){
+    Session.set('currentView', 'solvingCrisis');
+  } else if(game.state === 'inProgress'){
+    Session.set('currentView', 'gameView');
+  } else if (game.state === 'waitingForPlayers') {
+    Session.set('currentView', 'lobby');
   }
 }
 
 function leaveGame () {
-  GAnalytics.event("game-actions", "gameleave");
   var player = getCurrentPlayer();
 
-  Session.set("currentView", "startMenu");
+  Session.set('currentView', 'startMenu');
   Players.remove(player._id);
 
-  Session.set("playerID", null);
+  Session.set('playerID', null);
 }
 
 function hasHistoryApi () {
@@ -210,7 +214,7 @@ if (hasHistoryApi()){
     }
 
     var currentURL = '/';
-    if (accessCode){
+      if (accessCode){
       currentURL += accessCode+'/';
     }
     window.history.pushState(null, null, currentURL);
@@ -228,12 +232,6 @@ FlashMessages.configure({
 });
 
 Template.main.rendered = function() {
-  $.getScript("//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js", function() {
-    var ads, adsbygoogle;
-    ads = '<ins class="adsbygoogle" style="display:block;" data-ad-client="ca-pub-3450817379541922" data-ad-slot="4101511012" data-ad-format="auto"></ins>';
-    $('.adspace').html(ads);
-    return (adsbygoogle = window.adsbygoogle || []).push({});
-  });
 };
 
 Template.main.helpers({
@@ -250,27 +248,25 @@ Template.main.helpers({
 
 Template.footer.helpers({
   languages: getLanguageList
-})
+});
 
 Template.footer.events({
   'click .btn-set-language': function (event) {
     var language = $(event.target).data('language');
     setUserLanguage(language);
-    GAnalytics.event("language-actions", "set-language-" + language);
   },
   'change .language-select': function (event) {
     var language = event.target.value;
     setUserLanguage(language);
-    GAnalytics.event("language-actions", "set-language-" + language);
   }
-})
+});
 
 Template.startMenu.events({
   'click #btn-new-game': function () {
-    Session.set("currentView", "createGame");
+    Session.set('currentView', 'createGame');
   },
   'click #btn-join-game': function () {
-    Session.set("currentView", "joinGame");
+    Session.set('currentView', 'joinGame');
   }
 });
 
@@ -284,15 +280,11 @@ Template.startMenu.helpers({
 });
 
 Template.startMenu.rendered = function () {
-  GAnalytics.pageview("/");
-
   resetUserState();
 };
 
 Template.createGame.events({
   'submit #create-game': function (event) {
-    GAnalytics.event("game-actions", "newgame");
-
     var playerName = event.target.playerName.value;
 
     if (!playerName || Session.get('loading')) {
@@ -304,20 +296,20 @@ Template.createGame.events({
 
     Meteor.subscribe('games', game.accessCode);
 
-    Session.set("loading", true);
+    Session.set('loading', true);
 
     Meteor.subscribe('players', game._id, function onReady(){
-      Session.set("loading", false);
+      Session.set('loading', false);
 
-      Session.set("gameID", game._id);
-      Session.set("playerID", player._id);
-      Session.set("currentView", "lobby");
+      Session.set('gameID', game._id);
+      Session.set('playerID', player._id);
+      Session.set('currentView', 'lobby');
     });
 
     return false;
   },
   'click .btn-back': function () {
-    Session.set("currentView", "startMenu");
+    Session.set('currentView', 'startMenu');
     return false;
   }
 });
@@ -329,13 +321,11 @@ Template.createGame.helpers({
 });
 
 Template.createGame.rendered = function (event) {
-  $("#player-name").focus();
+  $('#player-name').focus();
 };
 
 Template.joinGame.events({
   'submit #join-game': function (event) {
-    GAnalytics.event("game-actions", "gamejoin");
-
     var accessCode = event.target.accessCode.value;
     var playerName = event.target.playerName.value;
 
@@ -346,10 +336,10 @@ Template.joinGame.events({
     accessCode = accessCode.trim();
     accessCode = accessCode.toLowerCase();
 
-    Session.set("loading", true);
+    Session.set('loading', true);
 
     Meteor.subscribe('games', accessCode, function onReady(){
-      Session.set("loading", false);
+      Session.set('loading', false);
 
       var game = Games.findOne({
         accessCode: accessCode
@@ -359,18 +349,17 @@ Template.joinGame.events({
         Meteor.subscribe('players', game._id);
         player = generateNewPlayer(game, playerName);
 
-        if (game.state === "inProgress") {
+        if (game.state === 'inProgress') {
           var default_role = game.location.roles[game.location.roles.length - 1];
           Players.update(player._id, {$set: {role: default_role}});
         }
 
         Session.set('urlAccessCode', null);
-        Session.set("gameID", game._id);
-        Session.set("playerID", player._id);
-        Session.set("currentView", "lobby");
+        Session.set('gameID', game._id);
+        Session.set('playerID', player._id);
+        Session.set('currentView', 'lobby');
       } else {
-        FlashMessages.sendError(TAPi18n.__("ui.invalid access code"));
-        GAnalytics.event("game-actions", "invalidcode");
+        FlashMessages.sendError(TAPi18n.__('ui.invalid access code'));
       }
     });
 
@@ -378,7 +367,7 @@ Template.joinGame.events({
   },
   'click .btn-back': function () {
     Session.set('urlAccessCode', null);
-    Session.set("currentView", "startMenu");
+    Session.set('currentView', 'startMenu');
     return false;
   }
 });
@@ -396,11 +385,11 @@ Template.joinGame.rendered = function (event) {
   var urlAccessCode = Session.get('urlAccessCode');
 
   if (urlAccessCode){
-    $("#access-code").val(urlAccessCode);
-    $("#access-code").hide();
-    $("#player-name").focus();
+    $('#access-code').val(urlAccessCode);
+    $('#access-code').hide();
+    $('#player-name').focus();
   } else {
-    $("#access-code").focus();
+    $('#access-code').focus();
   }
 };
 
@@ -434,20 +423,18 @@ Template.lobby.helpers({
   },
   isLoading: function() {
     var game = getCurrentGame();
-    return game.state === 'settingUp';
+    return game.state === 'choosingCrisisSource';
   }
 });
 
 Template.lobby.events({
   'click .btn-leave': leaveGame,
   'click .btn-start': function () {
-    GAnalytics.event("game-actions", "gamestart");
-
     var game = getCurrentGame();
-    Games.update(game._id, {$set: {state: 'settingUp'}});
+    Games.update(game._id, {$set: {state: 'choosingCrisisSource'}});
   },
   'click .btn-toggle-qrcode': function () {
-    $(".qrcode-container").toggle();
+    $('.qrcode-container').toggle();
   },
   'click .btn-remove-player': function (event) {
     var playerID = $(event.currentTarget).data('player-id');
@@ -463,9 +450,72 @@ Template.lobby.events({
 
 Template.lobby.rendered = function (event) {
   var url = getAccessLink();
-  var qrcodesvg = new Qrcodesvg(url, "qrcode", 250);
+  var qrcodesvg = new Qrcodesvg(url, 'qrcode', 250);
   qrcodesvg.draw();
 };
+
+Template.choosingCrisis.helpers({
+    player: getCurrentPlayer
+});
+
+Template.choosingCrisis.events({
+  'submit #choose-crisis': function(event) {
+    var crisisDescription = event.target.crisisDescription.value;
+
+    if (!crisisDescription || Session.get('loading')) {
+      return false;
+    }
+
+    var numWords = crisisDescription.trim().split(/\s+/).length;
+    if (numWords > 6 || numWords < 1) {
+      FlashMessages.sendError(TAPi18n.__('ui.invalid description'));
+      return false;
+    }
+
+    var game = getCurrentGame();
+    Games.update(game._id,  {$set: {crisisDescription: crisisDescription,
+                                    state: 'findingElon'}});
+
+    return false;
+
+  },
+  'click .btn-cancel': function() {
+    var game = getCurrentGame();
+    Games.update(game._id, {$set: {state: 'waitingForPlayers'}});
+  }
+});
+
+Template.solvingCrisis.helpers({
+  game: getCurrentGame,
+  player: getCurrentPlayer
+});
+
+Template.solvingCrisis.events({
+  'submit #solve-crisis': function(event) {
+    var solutionDescription = event.target.solutionDescription.value;
+
+    if (!solutionDescription || Session.get('loading')) {
+      return false;
+    }
+
+    var numWords = solutionDescription.trim().split(/\s+/).length;
+    if (numWords != 2) {
+      FlashMessages.sendError(TAPi18n.__('ui.invalid solution'));
+      return false;
+    }
+
+    var player = getCurrentPlayer();
+    console.log(solutionDescription);
+    Players.update(player._id,  {$set: {solutionDescription: solutionDescription,
+                                        submittedSolution: true}});
+
+    return false;
+  },
+  'click .btn-cancel': function() {
+    var game = getCurrentGame();
+    Games.update(game._id, {$set: {state: 'waitingForPlayers'}});
+  }
+});
 
 function getTimeRemaining(){
   var game = getCurrentGame();
@@ -519,24 +569,20 @@ Template.gameView.helpers({
 Template.gameView.events({
   'click .btn-leave': leaveGame,
   'click .btn-end': function () {
-    GAnalytics.event("game-actions", "gameend");
-
     var game = getCurrentGame();
     Games.update(game._id, {$set: {state: 'waitingForPlayers'}});
   },
   'click .btn-toggle-status': function () {
-    $(".status-container-content").toggle();
+    $('.status-container-content').toggle();
   },
   'click .game-countdown': function () {
     var game = getCurrentGame();
     var currentServerTime = TimeSync.serverTime(moment());
 
     if(game.paused){
-      GAnalytics.event("game-actions", "unpause");
       var newEndTime = game.endTime - game.pausedTime + currentServerTime;
       Games.update(game._id, {$set: {paused: false, pausedTime: null, endTime: newEndTime}});
     } else {
-      GAnalytics.event("game-actions", "pause");
       Games.update(game._id, {$set: {paused: true, pausedTime: currentServerTime}});
     }
   },
